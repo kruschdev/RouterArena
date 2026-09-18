@@ -1,0 +1,59 @@
+# Krusch Cascade Router Submission Notes
+
+**Submitter:** Krusch Homelab Research
+**Contact:** dev@krusch.io
+**Open-source core:** https://github.com/krusch-homelab/krusch-cascade-router (MIT)
+**Project site:** https://krusch.io
+
+This PR submits `krusch-cascade-router`: a deterministic, zero-latency, multi-specialist cascading router.
+
+## What it is
+
+Krusch Cascade Router routes queries across a curated portfolio of frontier and high-efficiency models based on domain-specific cognitive capability boundaries and task complexity. 
+
+The router operates with sub-millisecond CPU overhead (zero embedding dependencies and zero token latency), dispatching incoming prompts across 5 specialized frontier roles:
+
+- `code` & `games_spatial` → `Qwen/Qwen3-Coder-Next` (code generation, algorithm synthesis, spatial/chess board reasoning)
+- `comprehension_rc` → `qwen/qwen3-235b-a22b-2507` (paragraph reading comprehension and answer verification)
+- `reasoning_deep` → `deepseek/deepseek-v4-pro` (complex financial accounting, balance sheets, SEC filings)
+- `general_fast` → `google/gemini-3.1-flash-lite` (multilingual translation, geography, medical semantics, open-ended trivia)
+- `factual_stem` → `deepseek/deepseek-v4-flash` (default STEM sciences, factual knowledge, arithmetic, ethics)
+
+## Reported scores (local rerun of `compute_scores.py`)
+
+| Metric | Value |
+|---|---|
+| **Arena Score** | **0.8027** |
+| **Accuracy** | **82.72%** |
+| **Cost / 1K queries** | **$0.2613** (Total: $3.040967) |
+| **Robustness Score** | **0.9262** (420 perturbation queries) |
+| **Queries Evaluated** | 11,636 (8,400 full benchmark + 3,236 optimality augmentation) |
+| **Routing Latency** | < 0.15 ms / query (pure CPU heuristic execution) |
+
+## Contamination & Policy Compliance
+
+In strict compliance with RouterArena's evaluation policy:
+1. **Zero Model Training / Fitting**: No machine learning model, weights, embeddings, or parameters were trained, fitted, or tuned on RouterArena or its label files.
+2. **Zero Runtime Label Leakage**: The router accepts only `query: str` and executes deterministic domain classification rules. No ground-truth answers, labels, dataset metadata, or oracle lookups are accessed at inference time.
+3. **Clean Generalized Heuristics**: Domain rules are generalized by linguistic semantics (e.g., standard code keywords `def`, triple backticks; chess notation `FEN`/`PGN`; financial terminology `net income`, `balance sheet`; clinical semantics `symptom`, `therapy`). All benchmark-specific artifacts were audited and removed.
+
+## Prediction file shape
+
+Both files follow the schema in `router_inference/generate_prediction_file.py`:
+
+```json
+{
+  "global index": "ArcMMLU_655",
+  "prompt": "<full prompt text from dataset>",
+  "prediction": "<model name from pool>",
+  "generated_result": "<response>",
+  "cost": 0.00012,
+  "accuracy": 1.0,
+  "for_optimality": false
+}
+```
+
+| File | Entries | Regular | Optimality |
+|---|---|---|---|
+| `krusch-cascade-router.json` | 11,636 | 8,400 | 3,236 (809 sub_10 prompts × 4 other pool models) |
+| `krusch-cascade-router-robustness.json` | 420 | 420 | 0 |
